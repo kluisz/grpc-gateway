@@ -6,8 +6,8 @@ import (
 	"go/format"
 	"path"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/descriptor"
-	gen "github.com/grpc-ecosystem/grpc-gateway/v2/internal/generator"
+	"github.com/kluisz/grpc-gateway/v2/internal/descriptor"
+	gen "github.com/kluisz/grpc-gateway/v2/internal/generator"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
@@ -34,8 +34,8 @@ func New(reg *descriptor.Registry, useRequestContext bool, registerFuncSuffix st
 		"errors",
 		"io",
 		"net/http",
-		"github.com/grpc-ecosystem/grpc-gateway/v2/runtime",
-		"github.com/grpc-ecosystem/grpc-gateway/v2/utilities",
+		"github.com/kluisz/grpc-gateway/v2/runtime",
+		"github.com/kluisz/grpc-gateway/v2/utilities",
 		"google.golang.org/protobuf/proto",
 		"google.golang.org/grpc",
 		"google.golang.org/grpc/codes",
