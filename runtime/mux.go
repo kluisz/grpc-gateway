@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kluisz/grpc-gateway/v2/internal/httprule"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
