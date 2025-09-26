@@ -557,6 +557,141 @@ This GopherCon UK 2019 presentation from our maintainer [@JohanBrandhorst](https
 </a>
 </div>
 
+## URL Pattern Validation
+
+gRPC-Gateway includes built-in URL pattern validation to prevent common routing issues that can cause conflicts in HTTP routing. This validation is **enabled by default** and helps ensure your APIs work reliably.
+
+### Validation Rules
+
+The validator enforces two key rules to prevent routing conflicts:
+
+1. **Maximum 4 static segments** at the beginning of URL patterns
+2. **No consecutive static segments** after dynamic segments
+
+### Examples
+
+#### ✅ Valid Patterns
+```protobuf
+// 4 or fewer static segments at start
+rpc GetUser(GetUserRequest) returns (User) {
+  option (google.api.http) = {
+    get: "/api/v1/users/{user_id}"  // 3 static segments: api, v1, users
+  };
+}
+
+// Mixed static and dynamic segments (no consecutive static after dynamic)
+rpc GetUserPosts(GetUserPostsRequest) returns (Posts) {
+  option (google.api.http) = {
+    get: "/api/v1/{user_id}/posts"  // Valid: single static after dynamic
+  };
+}
+```
+
+#### ❌ Invalid Patterns
+```protobuf
+// Too many static segments (5+ at start)
+rpc GetResource(GetResourceRequest) returns (Resource) {
+  option (google.api.http) = {
+    get: "/api/v1/admin/resources/types/{id}"  // 5 static segments
+  };
+}
+
+// Consecutive static segments after dynamic
+rpc GetUserConfig(GetUserConfigRequest) returns (Config) {
+  option (google.api.http) = {
+    get: "/api/{user_id}/config/settings/{id}"  // config + settings consecutive
+  };
+}
+```
+
+### Controlling Validation
+
+#### Default Behavior (Recommended)
+Validation is enabled by default with no configuration required.
+
+#### Disable Validation (Emergency Use Only)
+```sh
+# With buf generate
+version: v2
+plugins:
+  - local: protoc-gen-grpc-gateway
+    out: gen/go
+    opt:
+      - paths=source_relative
+      - validate_url_patterns=false  # WARNING: Only for exceptional cases
+
+# With protoc
+protoc --grpc-gateway_opt validate_url_patterns=false \
+       --grpc-gateway_out=. your_service.proto
+```
+
+#### Increase Static Segment Limit
+```sh
+# With buf generate  
+version: v2
+plugins:
+  - local: protoc-gen-grpc-gateway
+    out: gen/go
+    opt:
+      - paths=source_relative
+      - max_static_segments=6  # WARNING: May cause routing issues
+
+# With protoc
+protoc --grpc-gateway_opt max_static_segments=6 \
+       --grpc-gateway_out=. your_service.proto
+```
+
+#### Environment Variable Control
+```go
+// In your go:generate directive
+//go:generate sh -c "protoc ... ${GRPC_GATEWAY_VALIDATE:+--grpc-gateway_opt validate_url_patterns=$GRPC_GATEWAY_VALIDATE} ..."
+```
+
+Then use:
+```sh
+# Disable validation
+GRPC_GATEWAY_VALIDATE=false go generate ./...
+
+# Use custom limit  
+GRPC_GATEWAY_MAX_STATIC=6 go generate ./...
+```
+
+#### Programmatic Control
+```go
+import "github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule"
+
+// Disable validation
+httprule.SetURLValidationEnabled(false)
+
+// Set custom limit
+httprule.SetMaxStaticSegments(6)
+
+// Check if pattern is valid
+if httprule.IsValidURLPattern("/api/v1/users/{id}") {
+    // Pattern is valid
+}
+```
+
+### Warning System
+
+When validation is disabled or limits are increased, warnings are displayed:
+
+```
+WARNING: URL pattern validation is DISABLED - this should only be used for exceptional legacy cases
+WARNING: Maximum static segments increased to 6 - this may cause routing issues
+```
+
+### Why Validation Matters
+
+URL pattern validation prevents these common issues:
+
+- **Route conflicts**: Multiple patterns mapping to the same HTTP path
+- **Ambiguous routing**: Patterns that could match multiple handlers
+- **Performance degradation**: Complex routing logic from poorly designed patterns
+- **Maintenance difficulties**: Hard-to-debug routing issues in production
+
+The validation rules are based on best practices from large-scale API deployments and help ensure your APIs remain fast, reliable, and maintainable.
+
 ## Parameters and flags
 
 When using `buf` to generate stubs, flags and parameters are passed through
@@ -571,6 +706,8 @@ plugins:
       - paths=source_relative
       - grpc_api_configuration=path/to/config.yaml
       - standalone=true
+      - validate_url_patterns=true  # URL validation (default: true)
+      - max_static_segments=4       # Static segment limit (default: 4)
 ```
 
 During code generation with `protoc`, flags to gRPC-Gateway tools must be passed
@@ -579,7 +716,7 @@ through `protoc` using one of 2 patterns:
 - as part of the `--<tool_suffix>_out` `protoc` parameter: `--<tool_suffix>_out=<flags>:<path>`
 
 ```sh
---grpc-gateway_out=repeated_path_param_separator=ssv:.
+--grpc-gateway_out=repeated_path_param_separator=ssv,validate_url_patterns=false:.
 --openapiv2_out=repeated_path_param_separator=ssv:.
 ```
 
@@ -587,6 +724,8 @@ through `protoc` using one of 2 patterns:
 
 ```sh
 --grpc-gateway_opt repeated_path_param_separator=ssv
+--grpc-gateway_opt validate_url_patterns=false
+--grpc-gateway_opt max_static_segments=6
 --openapiv2_opt repeated_path_param_separator=ssv
 ```
 
