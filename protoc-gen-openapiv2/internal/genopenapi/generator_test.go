@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/kluisz/grpc-gateway/v2/internal/descriptor"
-	"github.com/kluisz/grpc-gateway/v2/protoc-gen-openapiv2/internal/genopenapi"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/internal/descriptor"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/internal/genopenapi"
 	"go.yaml.in/yaml/v3"
 
 	"google.golang.org/protobuf/encoding/prototext"
